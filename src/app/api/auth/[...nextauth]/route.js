@@ -2,6 +2,10 @@ import Credentials from "next-auth/providers/credentials";
 import { connectToDatabase } from "@/utils/db";
 import { User } from "@/models/user.model";
 import NextAuth from "next-auth";
+import bcrypt from "bcryptjs"
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const authOptions = {
   providers: [
@@ -20,8 +24,10 @@ const authOptions = {
         await connectToDatabase();
         
         const user = await User.findOne({ email: credentials.email });
+
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
         
-        if(!user || user.password !== credentials.password){
+        if(!user || !isPasswordValid){
           throw new Error("Invalid email or password")
         }
         return {id: user._id, name: user.name, email: user.email };
@@ -52,6 +58,7 @@ const authOptions = {
       return session
     }
   },
+  secret: process.env.NEXTAUTH_SECRET
 };
 
 const handler = NextAuth(authOptions)
